@@ -5,7 +5,6 @@ import com.userorder.persistance.model.VerificationToken;
 import com.userorder.persistance.repository.UserRepository;
 import com.userorder.persistance.repository.VerificationTokenRepository;
 import com.userorder.persistance.utils.GraphBuilderMappingService;
-import com.userorder.service.UserPreferenceService;
 import com.userorder.service.UserService;
 import com.userorder.service.VerificationTokenService;
 import com.userorder.service.dto.PasswordChangeRequestDTO;
@@ -33,7 +32,7 @@ import java.util.Set;
 
 @Service
 @Slf4j
-public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepository> implements UserService {
+public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepository, UserMapper> implements UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
@@ -41,7 +40,7 @@ public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepo
     private final VerificationTokenService verificationTokenService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ValidationService validationService;
-    private final UserPreferenceService userPreferenceService;
+
 
     @Autowired
     public UserServiceImpl(
@@ -53,54 +52,16 @@ public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepo
             VerificationTokenRepository tokenRepository,
             VerificationTokenService verificationTokenService,
             KafkaTemplate<String, Object> kafkaTemplate,
-            ValidationService validationService,
-            UserPreferenceService userPreferenceService) {
-        super(repository, graphBuilderService, entityManager, User.class);
+            ValidationService validationService) {
+        super(repository, userMapper, graphBuilderService, entityManager);
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.tokenRepository = tokenRepository;
         this.verificationTokenService = verificationTokenService;
         this.kafkaTemplate = kafkaTemplate;
         this.validationService = validationService;
-        this.userPreferenceService = userPreferenceService;
     }
 
-    @Override
-    protected Object getMapper() {
-        return userMapper;
-    }
-
-    @Override
-    protected UserDTO toDto(User entity, MappingOptions options) {
-        return userMapper.toDtoWithOptions(entity, options);
-    }
-
-    @Override
-    protected User toEntity(UserDTO dto) {
-        User user = userMapper.toEntity(dto);
-
-        // Encrypt password if provided
-        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
-            user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        }
-
-        return user;
-    }
-
-    @Override
-    protected void updateEntityFromDto(UserDTO dto, User entity, MappingOptions options) {
-        // Update basic fields
-        userMapper.updateUserFromDto(dto, entity);
-
-        // Process related entities based on strategy
-        if (dto.getAddresses() != null) {
-            userMapper.processAddresses(entity, dto.getAddresses(), options);
-        }
-
-        if (dto.getContacts() != null) {
-            userMapper.processContacts(entity, dto.getContacts(), options);
-        }
-    }
 
     @Override
     @Cacheable(value = "usersByUsername", key = "#username + '-' + #includeAudit + '-' + (#attributes != null ? #attributes.hashCode() : 'basic')")
@@ -125,7 +86,7 @@ public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepo
                 .includeAudit(includeAudit)
                 .build();
 
-        return toDto(user, options);
+        return  mapper.toDtoWithOptions(user, options);
     }
 
     @Override
@@ -151,7 +112,7 @@ public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepo
                 .includeAudit(includeAudit)
                 .build();
 
-        return toDto(user, options);
+        return mapper.toDtoWithOptions(user, options);
     }
 
     @Override
@@ -195,7 +156,7 @@ public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepo
         ));
 
         // Return user data
-        return toDto(updatedUser, MappingOptions.builder().build());
+        return mapper.toDtoWithOptions(updatedUser, MappingOptions.builder().build());
     }
 
     @Override
@@ -256,9 +217,6 @@ public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepo
 
         // Create user
         UserDTO savedUser = save(userDTO);
-
-        // Create default preferences
-        userPreferenceService.createDefaultPreferences(savedUser.getId());
 
         // Create verification token
         verificationTokenService.createToken(savedUser.getId(), VerificationToken.TokenType.EMAIL_VERIFICATION, 1440);

@@ -10,49 +10,48 @@ import java.util.Set;
 /**
  * Базовий інтерфейс сервісу з підтримкою CRUD операцій і динамічного завантаження атрибутів.
  *
- * @param <E> Тип сутності
- * @param <D> Тип DTO
+ * @param <T> Entity type
  */
-public interface BaseService<E, D extends DTO> {
+public interface BaseService<T> {
 
     /**
      * Знаходить сутність за ID з конфігурованим набором атрибутів
      */
-    D findById(Long id, boolean includeAudit, Set<String> attributes);
+    T findById(Long id, boolean includeAudit, Set<String> attributes);
 
     /**
      * Знаходить сутність за ID з базовими атрибутами
      */
-    default D findById(Long id) {
+    default T findById(Long id) {
         return findById(id, false, null);
     }
 
     /**
      * Повертає всі сутності з конфігурованим набором атрибутів
      */
-    List<D> findAll(boolean includeAudit, Set<String> attributes);
+    List<T> findAll(boolean includeAudit, Set<String> attributes);
 
     /**
      * Повертає всі сутності з базовими атрибутами
      */
-    default List<D> findAll() {
+    default List<T> findAll() {
         return findAll(false, null);
     }
 
     /**
      * Зберігає нову сутність
      */
-    D save(D dto);
+   T save(T dto);
 
     /**
      * Оновлює існуючу сутність
      */
-    D update(D dto, MappingOptions options);
+    T update(T dto, MappingOptions options);
 
     /**
      * Оновлює частково існуючу сутність (тільки ненульові поля)
      */
-    default D update(D dto) {
+    default T update(T dto) {
         MappingOptions options = MappingOptions.builder()
                 .collectionStrategy(MappingOptions.CollectionHandlingStrategy.MERGE)
                 .build();
@@ -72,5 +71,5 @@ public interface BaseService<E, D extends DTO> {
     /**
      * Знаходить сутність (не DTO) за ID
      */
-    Optional<E> findEntityById(Long id);
+    Optional<T> findEntityById(Long id);
 }

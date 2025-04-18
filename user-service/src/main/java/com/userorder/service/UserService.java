@@ -10,7 +10,7 @@ import java.util.Set;
 /**
  * Сервіс для роботи з користувачами.
  */
-public interface UserService extends BaseService<User, UserDTO> {
+public interface UserService extends BaseService<UserDTO> {
 
     /**
      * Знаходить користувача за ім'ям користувача

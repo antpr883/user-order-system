@@ -11,7 +11,7 @@ import java.util.Set;
  * Mapper for Contact entities and DTOs
  */
 @Mapper(config = CommonMapperConfig.class, uses = {AuditMapper.class})
-public interface ContactMapper {
+public interface ContactMapper extends EntityMapper<ContactDTO, Contact> {
 
     /**
      * Maps a Contact entity to a ContactDTO

@@ -11,7 +11,7 @@ import java.util.Set;
  * Mapper for Address entities and DTOs
  */
 @Mapper(config = CommonMapperConfig.class, uses = {AuditMapper.class})
-public interface AddressMapper {
+public interface AddressMapper extends EntityMapper<AddressDTO, Address> {
 
     /**
      * Maps an Address entity to an AddressDTO

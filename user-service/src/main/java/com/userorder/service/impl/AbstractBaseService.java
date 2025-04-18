@@ -6,7 +6,7 @@ import com.userorder.persistance.repository.BaseCustomJpaRepository;
 import com.userorder.persistance.utils.GraphBuilderMappingService;
 import com.userorder.service.BaseService;
 import com.userorder.service.dto.base.BaseDTO;
-import com.userorder.service.dto.base.DTO;
+import com.userorder.service.dto.mappers.EntityMapper;
 import com.userorder.service.dto.mappers.MappingOptions;
 import com.userorder.service.exception.ResourceNotFoundException;
 import jakarta.persistence.EntityManager;
@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,33 +31,29 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 @Transactional
-public abstract class AbstractBaseService<E extends PersistenceModel, D extends BaseDTO, R extends BaseCustomJpaRepository<E, Long>>
-        implements BaseService<E, D> {
+public abstract class AbstractBaseService<E extends PersistenceModel,
+        D extends BaseDTO,
+        R extends BaseCustomJpaRepository<E, Long>,
+        M extends EntityMapper<E, D>>
+        implements BaseService<D> {
 
     protected final R repository;
+    protected final M mapper;
     protected final GraphBuilderMappingService graphBuilderService;
     protected final EntityManager entityManager;
     protected final Class<E> entityClass;
 
-    /**
-     * Повертає мапер, який конвертує між сутністю та DTO
-     */
-    protected abstract Object getMapper();
+    @SuppressWarnings("unchecked")
+    protected AbstractBaseService(R repository, M mapper, GraphBuilderMappingService graphBuilderService ,EntityManager entityManager) {
+        this.repository = repository;
+        this.mapper = mapper;
+        this.graphBuilderService = graphBuilderService;
+        this.entityManager = entityManager;
 
-    /**
-     * Конвертує сутність в DTO з урахуванням опцій мапінгу
-     */
-    protected abstract D toDto(E entity, MappingOptions options);
-
-    /**
-     * Конвертує DTO в сутність
-     */
-    protected abstract E toEntity(D dto);
-
-    /**
-     * Оновлює сутність з DTO
-     */
-    protected abstract void updateEntityFromDto(D dto, E entity, MappingOptions options);
+        // Extract the entity class type using reflection
+        this.entityClass = (Class<E>) ((ParameterizedType) getClass()
+                .getGenericSuperclass()).getActualTypeArguments()[0];
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -77,7 +74,7 @@ public abstract class AbstractBaseService<E extends PersistenceModel, D extends 
                 .includeAudit(includeAudit)
                 .build();
 
-        return toDto(entity, options);
+        return mapper.toDtoWithOptions(entity, options);
     }
 
     @Override
@@ -100,7 +97,7 @@ public abstract class AbstractBaseService<E extends PersistenceModel, D extends 
                 .build();
 
         return entities.stream()
-                .map(entity -> toDto(entity, options))
+                .map(entity -> mapper.toDtoWithOptions(entity, options))
                 .collect(Collectors.toList());
     }
 
@@ -108,10 +105,10 @@ public abstract class AbstractBaseService<E extends PersistenceModel, D extends 
     public D save(D dto) {
         log.debug("Saving new entity: {}", dto);
 
-        E entity = toEntity(dto);
+        E entity = mapper.toEntity(dto);
         entity = repository.save(entity);
 
-        return toDto(entity, MappingOptions.builder().build());
+        return mapper.toDtoWithOptions(entity, MappingOptions.builder().build());
     }
 
     @Override
@@ -125,10 +122,10 @@ public abstract class AbstractBaseService<E extends PersistenceModel, D extends 
         E entity = repository.findById(dto.getId())
                 .orElseThrow(() -> new ResourceNotFoundException(entityClass.getSimpleName() + " not found with id: " + dto.getId()));
 
-        updateEntityFromDto(dto, entity, options);
+        mapper.partialUpdate(entity ,dto);
         entity = repository.save(entity);
 
-        return toDto(entity, options);
+        return mapper.toDto(entity);
     }
 
     @Override
@@ -149,7 +146,7 @@ public abstract class AbstractBaseService<E extends PersistenceModel, D extends 
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<E> findEntityById(Long id) {
+    public Optional<D> findEntityById(Long id) {
         return repository.findById(id);
     }
 

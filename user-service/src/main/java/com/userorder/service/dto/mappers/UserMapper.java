@@ -16,7 +16,7 @@ import java.util.Set;
  * Мапер для сутностей User та DTO з можливістю динамічного мапінгу
  */
 @Mapper(config = CommonMapperConfig.class, uses = {AddressMapper.class, ContactMapper.class, AuditMapper.class})
-public abstract class UserMapper {
+public abstract class UserMapper implements EntityMapper<User, UserDTO> {
 
     @Autowired
     protected AddressMapper addressMapper;
