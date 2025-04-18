@@ -21,7 +21,7 @@ import java.util.Set;
  * Unified DTO for User entity with support for different detail levels
  */
 @Data
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)

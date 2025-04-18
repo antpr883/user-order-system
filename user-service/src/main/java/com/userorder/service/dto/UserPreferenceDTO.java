@@ -14,7 +14,7 @@ import lombok.experimental.SuperBuilder;
  * Always includes the user ID it belongs to
  */
 @Data
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)

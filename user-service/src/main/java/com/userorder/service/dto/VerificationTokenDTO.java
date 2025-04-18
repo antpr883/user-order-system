@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  * DTO for verification tokens
  */
 @Data
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)

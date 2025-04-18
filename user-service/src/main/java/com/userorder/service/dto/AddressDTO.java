@@ -16,7 +16,7 @@ import lombok.experimental.SuperBuilder;
  * DTO for addresses
  */
 @Data
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
