@@ -37,6 +37,7 @@ public class VerificationToken extends PersistenceModel {
     @Column(name = "token_type", nullable = false)
     private TokenType tokenType;
 
+    @Builder.Default
     @Column(name = "is_used", nullable = false)
     private Boolean isUsed = false;
 

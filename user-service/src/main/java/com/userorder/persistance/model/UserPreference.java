@@ -25,15 +25,19 @@ public class UserPreference extends PersistenceModel {
     @JoinColumn(name = "user_id", unique = true)
     private User user;
 
+    @Builder.Default
     @Column(name = "language", length = 10)
     private String language = "en";
 
+    @Builder.Default
     @Column(name = "timezone", length = 50)
     private String timezone = "UTC";
 
+    @Builder.Default
     @Column(name = "notification_enabled")
     private Boolean notificationEnabled = true;
 
+    @Builder.Default
     @Column(name = "theme")
     private String theme = "light";
 }

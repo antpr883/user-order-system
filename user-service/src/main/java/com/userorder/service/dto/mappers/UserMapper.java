@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Мапер для сутностей User та DTO з можливістю динамічного мапінгу
@@ -26,14 +25,14 @@ public abstract class UserMapper {
     protected ContactMapper contactMapper;
 
     /**
-     * Мапить сутність User в UserDTO
+     * Maps a User entity to a UserDTO
      */
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "audit", expression = "java(AuditMapper.mapAuditData(user))")
     public abstract UserDTO toDto(User user);
 
     /**
-     * Мапить сутність User в UserDTO з динамічним включенням атрибутів
+     * Maps a User entity to a UserDTO with dynamic attribute inclusion
      */
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "audit", expression = "java(options.includeAudit() ? AuditMapper.mapAuditData(user) : null)")
@@ -42,8 +41,7 @@ public abstract class UserMapper {
     public abstract UserDTO toDtoWithOptions(User user, @Context MappingOptions options);
 
     /**
-     * Мапить UserDTO в сутність User
-     * Ігнорує відносини та поля, керовані системою
+     * Maps a UserDTO to a User entity
      */
     @Mapping(target = "addresses", ignore = true)
     @Mapping(target = "contacts", ignore = true)
@@ -55,11 +53,10 @@ public abstract class UserMapper {
     public abstract User toEntity(UserDTO dto);
 
     /**
-     * Оновлює сутність User з UserDTO
-     * Ігнорує відносини та поля, керовані системою
+     * Updates a User entity from a UserDTO
      */
-    @Mapping(target = "username", ignore = true) // Ім'я користувача не може бути змінено
-    @Mapping(target = "password", ignore = true) // Пароль має спеціальну обробку
+    @Mapping(target = "username", ignore = true)
+    @Mapping(target = "password", ignore = true)
     @Mapping(target = "addresses", ignore = true)
     @Mapping(target = "contacts", ignore = true)
     @Mapping(target = "createdDate", ignore = true)
@@ -70,21 +67,20 @@ public abstract class UserMapper {
     public abstract void updateUserFromDto(UserDTO dto, @MappingTarget User user);
 
     /**
-     * Обробляє адреси для користувача
-     * Створює або оновлює адреси з DTO
+     * Process addresses for a user
      */
     public User processAddresses(User user, Set<AddressDTO> addressDtos, MappingOptions options) {
         if (options.getCollectionStrategy() == MappingOptions.CollectionHandlingStrategy.IGNORE || addressDtos == null) {
             return user;
         }
 
-        // Якщо стратегія - REPLACE, видаляємо всі існуючі адреси
+        // If strategy is REPLACE, remove all existing addresses
         if (options.getCollectionStrategy() == MappingOptions.CollectionHandlingStrategy.REPLACE) {
             Set<Address> existingAddresses = new HashSet<>(user.getAddresses());
             existingAddresses.forEach(user::removeAddress);
         }
 
-        // Додаємо або оновлюємо адреси з DTO
+        // Add or update addresses from DTOs
         addressDtos.forEach(dto -> {
             if (dto.getId() != null) {
                 user.getAddresses().stream()
@@ -101,7 +97,7 @@ public abstract class UserMapper {
     }
 
     /**
-     * Застаріла версія для сумісності
+     * Legacy method for compatibility
      */
     public User processAddresses(User user, Set<AddressDTO> addressDtos) {
         return processAddresses(user, addressDtos, MappingOptions.builder()
@@ -110,21 +106,20 @@ public abstract class UserMapper {
     }
 
     /**
-     * Обробляє контакти для користувача
-     * Створює або оновлює контакти з DTO
+     * Process contacts for a user
      */
     public User processContacts(User user, Set<ContactDTO> contactDtos, MappingOptions options) {
         if (options.getCollectionStrategy() == MappingOptions.CollectionHandlingStrategy.IGNORE || contactDtos == null) {
             return user;
         }
 
-        // Якщо стратегія - REPLACE, видаляємо всі існуючі контакти
+        // If strategy is REPLACE, remove all existing contacts
         if (options.getCollectionStrategy() == MappingOptions.CollectionHandlingStrategy.REPLACE) {
             Set<Contact> existingContacts = new HashSet<>(user.getContacts());
             existingContacts.forEach(user::removeContact);
         }
 
-        // Додаємо або оновлюємо контакти з DTO
+        // Add or update contacts from DTOs
         contactDtos.forEach(dto -> {
             if (dto.getId() != null) {
                 user.getContacts().stream()
@@ -141,7 +136,7 @@ public abstract class UserMapper {
     }
 
     /**
-     * Застаріла версія для сумісності
+     * Legacy method for compatibility
      */
     public User processContacts(User user, Set<ContactDTO> contactDtos) {
         return processContacts(user, contactDtos, MappingOptions.builder()
@@ -150,13 +145,13 @@ public abstract class UserMapper {
     }
 
     /**
-     * Частково оновлює користувача з DTO, включаючи пов'язані сутності
+     * Update a user with relations
      */
     public User updateUserWithRelations(User user, UserDTO dto, MappingOptions options) {
-        // Оновлюємо прості поля користувача
+        // Update simple user fields
         updateUserFromDto(dto, user);
 
-        // Обробляємо пов'язані сутності, якщо вони присутні в DTO
+        // Process related entities if present in DTO
         if (dto.getAddresses() != null) {
             processAddresses(user, dto.getAddresses(), options);
         }

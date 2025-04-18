@@ -31,9 +31,4 @@ public interface UserPreferenceMapper extends GenericMapper<UserPreference, User
     @Mapping(target = "user", ignore = true)
     UserPreference toEntity(UserPreferenceDTO dto);
 
-    /**
-     * Creates a UserPreference from a DTO
-     */
-    @Mapping(target = "user", ignore = true)
-    UserPreference createPreferenceFromDto(UserPreferenceDTO dto);
 }

@@ -34,6 +34,7 @@ public class Address extends PersistenceModel {
     @Column(name = "country", length = 50)
     private String country;
 
+    @Builder.Default
     @Column(name = "is_default", nullable = false)
     private Boolean isDefault = false;
 

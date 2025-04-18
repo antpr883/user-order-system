@@ -20,8 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.util.stream.Nodes.collect;
-
 /**
  * Абстрактна реалізація базового сервісу з повною CRUD функціональністю.
  *

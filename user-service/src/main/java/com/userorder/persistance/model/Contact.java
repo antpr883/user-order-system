@@ -27,9 +27,11 @@ public class Contact extends PersistenceModel {
     @Column(length = 50)
     private String email;
 
+    @Builder.Default
     @Column(name = "is_primary", nullable = false)
     private Boolean isPrimary = false;
 
+    @Builder.Default
     @Column(name = "is_verified", nullable = false)
     private Boolean isVerified = false;
 

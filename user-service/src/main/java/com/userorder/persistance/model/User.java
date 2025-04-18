@@ -46,6 +46,7 @@ public class User extends PersistenceModel {
     @Column(name = "birth_day")
     private LocalDate birthDay;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status = UserStatus.ACTIVE;
@@ -53,6 +54,7 @@ public class User extends PersistenceModel {
     @Column(name = "last_login_date")
     private LocalDateTime lastLoginDate;
 
+    @Builder.Default
     @Column(name = "login_attempts")
     private Integer loginAttempts = 0;
 
@@ -81,6 +83,7 @@ public class User extends PersistenceModel {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<Contact> contacts = new HashSet<>();
 
+    @Builder.Default
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_role_names", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role_name")

@@ -5,9 +5,12 @@ import com.userorder.persistance.model.VerificationToken;
 import com.userorder.persistance.repository.UserRepository;
 import com.userorder.persistance.repository.VerificationTokenRepository;
 import com.userorder.persistance.utils.GraphBuilderMappingService;
+import com.userorder.service.UserPreferenceService;
 import com.userorder.service.UserService;
+import com.userorder.service.VerificationTokenService;
 import com.userorder.service.dto.PasswordChangeRequestDTO;
 import com.userorder.service.dto.UserDTO;
+import com.userorder.service.dto.base.OnCreate;
 import com.userorder.service.dto.mappers.MappingOptions;
 import com.userorder.service.dto.mappers.UserMapper;
 import com.userorder.service.exception.InvalidTokenException;
@@ -22,6 +25,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
@@ -34,7 +38,10 @@ public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepo
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final VerificationTokenRepository tokenRepository;
+    private final VerificationTokenService verificationTokenService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ValidationService validationService;
+    private final UserPreferenceService userPreferenceService;
 
     @Autowired
     public UserServiceImpl(
@@ -44,12 +51,18 @@ public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepo
             UserMapper userMapper,
             PasswordEncoder passwordEncoder,
             VerificationTokenRepository tokenRepository,
-            KafkaTemplate<String, Object> kafkaTemplate) {
+            VerificationTokenService verificationTokenService,
+            KafkaTemplate<String, Object> kafkaTemplate,
+            ValidationService validationService,
+            UserPreferenceService userPreferenceService) {
         super(repository, graphBuilderService, entityManager, User.class);
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.tokenRepository = tokenRepository;
+        this.verificationTokenService = verificationTokenService;
         this.kafkaTemplate = kafkaTemplate;
+        this.validationService = validationService;
+        this.userPreferenceService = userPreferenceService;
     }
 
     @Override
@@ -156,7 +169,7 @@ public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepo
         User user = repository.findById(passwordChangeDto.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + passwordChangeDto.getUserId()));
 
-        // Verify token
+        // Verify token using tokenRepository to get the token entity
         VerificationToken token = tokenRepository.findByTokenAndUser(passwordChangeDto.getToken(), user)
                 .orElseThrow(() -> new InvalidTokenException("Invalid token"));
 
