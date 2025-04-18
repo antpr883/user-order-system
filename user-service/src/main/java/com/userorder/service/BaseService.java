@@ -1,75 +1,58 @@
 package com.userorder.service;
 
-import com.userorder.service.dto.base.DTO;
-import com.userorder.service.dto.mappers.MappingOptions;
-
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 /**
- * Базовий інтерфейс сервісу з підтримкою CRUD операцій і динамічного завантаження атрибутів.
+ * Base service interface that defines common CRUD operations with flexible mapping options
  *
- * @param <T> Entity type
+ * @param <T> The DTO type
  */
 public interface BaseService<T> {
 
     /**
-     * Знаходить сутність за ID з конфігурованим набором атрибутів
-     */
-    T findById(Long id, boolean includeAudit, Set<String> attributes);
-
-    /**
-     * Знаходить сутність за ID з базовими атрибутами
-     */
-    default T findById(Long id) {
-        return findById(id, false, null);
-    }
-
-    /**
-     * Повертає всі сутності з конфігурованим набором атрибутів
-     */
-    List<T> findAll(boolean includeAudit, Set<String> attributes);
-
-    /**
-     * Повертає всі сутності з базовими атрибутами
-     */
-    default List<T> findAll() {
-        return findAll(false, null);
-    }
-
-    /**
-     * Зберігає нову сутність
-     */
-   T save(T dto);
-
-    /**
-     * Оновлює існуючу сутність
-     */
-    T update(T dto, MappingOptions options);
-
-    /**
-     * Оновлює частково існуючу сутність (тільки ненульові поля)
-     */
-    default T update(T dto) {
-        MappingOptions options = MappingOptions.builder()
-                .collectionStrategy(MappingOptions.CollectionHandlingStrategy.MERGE)
-                .build();
-        return update(dto, options);
-    }
-
-    /**
-     * Видаляє сутність за ID
+     * Delete entity by ID
+     * 
+     * @param id Entity ID
      */
     void deleteById(Long id);
 
     /**
-     * Перевіряє чи існує сутність із зазначеним ID
+     * Find entity by ID with configurable options for audit information and included attributes
+     * 
+     * @param id Entity ID
+     * @param withAudit Whether to include audit information (createdDate, modifiedDate, etc.)
+     * @param attributes Set of attributes to include (like "addresses", "contacts", "roles.permissions")
+     * @return DTO with requested configuration
      */
-    boolean existsById(Long id);
+    T findById(Long id, boolean withAudit, Set<String> attributes);
 
     /**
-     * Знаходить сутність (не DTO) за ID
+     * Find entity by ID with default configuration (no audit, no additional attributes)
+     * 
+     * @param id Entity ID
+     * @return DTO with basic fields
      */
-    Optional<T> findEntityById(Long id);
+    default T findById(Long id) {
+        return findById(id, false, null);
+    }
+    
+    /**
+     * Find all entities with configurable options for audit information and included attributes
+     * 
+     * @param withAudit Whether to include audit information (createdDate, modifiedDate, etc.)
+     * @param attributes Set of attributes to include (like "addresses", "contacts", "roles.permissions")
+     * @return List of DTOs with requested configuration
+     */
+    List<T> findAll(boolean withAudit, Set<String> attributes);
+
+    /**
+     * Find all entities with default configuration (no audit, no additional attributes)
+     * 
+     * @return List of DTOs with basic fields
+     */
+    default List<T> findAll() {
+        return findAll(false, null);
+    }
+    
 }

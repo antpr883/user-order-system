@@ -43,6 +43,7 @@
         <shiro.version>1.13.0</shiro.version>
         <jackson.version>2.15.3</jackson.version>
         <jedis.version>5.1.0</jedis.version>
+        <dotenv.version>5.2.2</dotenv.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -160,6 +161,11 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>java-dotenv</artifactId>
+            <version>${dotenv.version}</version>
+        </dependency>
 
     </dependencies>
 

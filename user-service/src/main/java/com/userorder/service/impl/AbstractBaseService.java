@@ -1,54 +1,52 @@
 package com.userorder.service.impl;
 
+import com.cosium.spring.data.jpa.entity.graph.domain2.DynamicEntityGraph;
 import com.cosium.spring.data.jpa.entity.graph.domain2.EntityGraph;
-import com.userorder.persistance.model.common.PersistenceModel;
-import com.userorder.persistance.repository.BaseCustomJpaRepository;
-import com.userorder.persistance.utils.GraphBuilderMappingService;
+import com.userorder.persistence.model.base.PersistenceModel;
+import com.userorder.persistence.repository.BaseCustomJpaRepository;
 import com.userorder.service.BaseService;
-import com.userorder.service.dto.base.BaseDTO;
-import com.userorder.service.dto.mappers.EntityMapper;
-import com.userorder.service.dto.mappers.MappingOptions;
-import com.userorder.service.exception.ResourceNotFoundException;
-import jakarta.persistence.EntityManager;
+import com.userorder.service.dto.mapper.EntityMapper;
+import com.userorder.service.dto.mapper.MappingOptions;
+import com.userorder.service.utils.mapping.GraphBuilderMapperService;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
- * Абстрактна реалізація базового сервісу з повною CRUD функціональністю.
+ * Abstract base service implementation that provides common CRUD operations with flexible mapping
  *
- * @param <E> Тип сутності
- * @param <D> Тип DTO
- * @param <R> Тип репозиторію
+ * @param <E> Entity type
+ * @param <D> DTO type
+ * @param <R> Repository type
+ * @param <M> Mapper type
  */
-@Slf4j
-@RequiredArgsConstructor
 @Transactional
-public abstract class AbstractBaseService<E extends PersistenceModel,
-        D extends BaseDTO,
+@RequiredArgsConstructor
+public abstract class AbstractBaseService<
+        E extends PersistenceModel,
+        D,
         R extends BaseCustomJpaRepository<E, Long>,
-        M extends EntityMapper<E, D>>
-        implements BaseService<D> {
+        M extends EntityMapper<E, D>> implements BaseService<D> {
 
     protected final R repository;
     protected final M mapper;
-    protected final GraphBuilderMappingService graphBuilderService;
-    protected final EntityManager entityManager;
+    protected final GraphBuilderMapperService graphBuilderService;
     protected final Class<E> entityClass;
 
     @SuppressWarnings("unchecked")
-    protected AbstractBaseService(R repository, M mapper, GraphBuilderMappingService graphBuilderService ,EntityManager entityManager) {
+    protected AbstractBaseService(R repository, M mapper, GraphBuilderMapperService graphBuilderService) {
         this.repository = repository;
         this.mapper = mapper;
         this.graphBuilderService = graphBuilderService;
-        this.entityManager = entityManager;
 
         // Extract the entity class type using reflection
         this.entityClass = (Class<E>) ((ParameterizedType) getClass()
@@ -56,119 +54,98 @@ public abstract class AbstractBaseService<E extends PersistenceModel,
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public D findById(Long id, boolean includeAudit, Set<String> attributes) {
-        log.debug("Finding entity by ID {} with attributes: {}, includeAudit: {}", id, attributes, includeAudit);
-
-        E entity;
-        if (attributes == null || attributes.isEmpty()) {
-            entity = repository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException(entityClass.getSimpleName() + " not found with id: " + id));
-        } else {
-            entity = repository.findByIdWithAttributes(id, attributes)
-                    .orElseThrow(() -> new ResourceNotFoundException(entityClass.getSimpleName() + " not found with id: " + id));
-        }
-
-        MappingOptions options = MappingOptions.builder()
-                .attributes(attributes)
-                .includeAudit(includeAudit)
-                .build();
-
-        return mapper.toDtoWithOptions(entity, options);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<D> findAll(boolean includeAudit, Set<String> attributes) {
-        log.debug("Finding all entities with attributes: {}, includeAudit: {}", attributes, includeAudit);
-
-        List<E> entities;
-        if (attributes == null || attributes.isEmpty()) {
-            entities = repository.findAll();
-        } else {
-            EntityGraph entityGraph = graphBuilderService.getGraphWithAttributes(entityClass, attributes);
-            entities = repository.findAll(entityGraph);
-
-        }
-
-        MappingOptions options = MappingOptions.builder()
-                .attributes(attributes)
-                .includeAudit(includeAudit)
-                .build();
-
-        return entities.stream()
-                .map(entity -> mapper.toDtoWithOptions(entity, options))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public D save(D dto) {
-        log.debug("Saving new entity: {}", dto);
-
-        E entity = mapper.toEntity(dto);
-        entity = repository.save(entity);
-
-        return mapper.toDtoWithOptions(entity, MappingOptions.builder().build());
-    }
-
-    @Override
-    public D update(D dto, MappingOptions options) {
-        if (dto.getId() == null) {
-            throw new IllegalArgumentException("ID must be provided for update operation");
-        }
-
-        log.debug("Updating entity with ID: {}", dto.getId());
-
-        E entity = repository.findById(dto.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(entityClass.getSimpleName() + " not found with id: " + dto.getId()));
-
-        mapper.partialUpdate(entity ,dto);
-        entity = repository.save(entity);
-
-        return mapper.toDto(entity);
-    }
-
-    @Override
     public void deleteById(Long id) {
-        log.debug("Deleting entity with ID: {}", id);
-
-        if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException(entityClass.getSimpleName() + " not found with id: " + id);
-        }
-
         repository.deleteById(id);
     }
 
     @Override
-    public boolean existsById(Long id) {
-        return repository.existsById(id);
-    }
-
-    @Override
     @Transactional(readOnly = true)
-    public Optional<D> findEntityById(Long id) {
-        return repository.findById(id);
-    }
-
-    /**
-     * Знаходить сутності за специфікацією з пагінацією та динамічними атрибутами
-     */
-    @Transactional(readOnly = true)
-    public Page<D> findAll(Specification<E> spec, Pageable pageable, boolean includeAudit, Set<String> attributes) {
-        log.debug("Finding entities by spec with pageable and attributes: {}", attributes);
-
-        Page<E> entityPage;
+    public D findById(Long id, boolean withAudit, Set<String> attributes) {
+        // Create an appropriate entity graph based on attributes
+        EntityGraph graph;
+        E entity;
+        
         if (attributes == null || attributes.isEmpty()) {
-            entityPage = repository.findAll(spec, pageable);
+            entity = repository.findById(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Entity not found with id: " + id));
         } else {
-            entityPage = repository.findPageWithAttributes(spec, pageable, attributes);
+            entity = repository.findByIdWithAttributes(id, attributes)
+                    .orElseThrow(() -> new EntityNotFoundException("Entity not found with id: " + id));
         }
 
         MappingOptions options = MappingOptions.builder()
                 .attributes(attributes)
-                .includeAudit(includeAudit)
+                .withAudit(withAudit)
+                .entityClass(entityClass)
                 .build();
 
-        return entityPage.map(entity -> toDto(entity, options));
+        return mapper.toDtoWithOptions(entity, options);
+    }
+    
+    /**
+     * Creates a default entity graph that's lightweight but effective
+     * for most common query scenarios
+     */
+    protected EntityGraph createDefaultEntityGraph() {
+        return createSummaryLevelGraph();
+    }
+    
+    /**
+     * Creates an entity graph optimized for summary level mapping
+     * - Includes just enough to get IDs and counts in a single query
+     * - Designed to minimize database roundtrips
+     */
+    protected EntityGraph createSummaryLevelGraph() {
+        DynamicEntityGraph.Builder builder = DynamicEntityGraph.fetching();
+        
+        // Analyze the entity class and add paths for all @OneToMany and @ManyToMany relations
+        // This ensures we can get IDs and counts without additional queries
+        for (Field field : entityClass.getDeclaredFields()) {
+            if (field.isAnnotationPresent(OneToMany.class) || 
+                field.isAnnotationPresent(ManyToMany.class) ||
+                field.isAnnotationPresent(ManyToOne.class)) {
+                builder.addPath(field.getName());
+            }
+        }
+        
+        return builder.build();
+    }
+
+    /**
+     * Helper method to create entity graph based on attribute set
+     */
+    protected EntityGraph createEntityGraph(Set<String> attributeSet) {
+        // Get graph just for requested attributes
+        return graphBuilderService.getGraphWithAttributes(entityClass, attributeSet);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<D> findAll(boolean withAudit, Set<String> attributes) {
+        List<E> entities;
+        
+        if (attributes == null || attributes.isEmpty()) {
+            // No attributes specified, use default find method without graph
+            Iterable<E> entitiesIterable = repository.findAll();
+            entities = new ArrayList<>();
+            entitiesIterable.forEach(entities::add);
+        } else {
+            // Generate targeted graph based on requested attributes
+            EntityGraph graph = createEntityGraph(attributes);
+            
+            // Fetch entities with graph
+            Iterable<E> entitiesIterable = repository.findAll(graph);
+            entities = new ArrayList<>();
+            entitiesIterable.forEach(entities::add);
+        }
+
+        // Map to DTOs with appropriate options
+        MappingOptions options = MappingOptions.builder()
+                .attributes(attributes)
+                .withAudit(withAudit)
+                .entityClass(entityClass) // Pass entity class for dynamic collection detection
+                .build();
+
+        return mapper.toDtoListWithOptions(entities, options);
     }
 }

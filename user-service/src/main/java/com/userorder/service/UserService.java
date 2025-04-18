@@ -1,34 +1,29 @@
 package com.userorder.service;
 
-import com.userorder.persistance.model.User;
-import com.userorder.service.dto.PasswordChangeRequestDTO;
+
+
+import com.userorder.persistence.model.User;
 import com.userorder.service.dto.UserDTO;
 
 import java.util.Optional;
-import java.util.Set;
 
 /**
- * Сервіс для роботи з користувачами.
+ * Service interface for User entity operations
  */
 public interface UserService extends BaseService<UserDTO> {
-
+    
     /**
-     * Знаходить користувача за ім'ям користувача
+     * Find a user entity by ID without mapping to DTO
      */
-    UserDTO findByUsername(String username, boolean includeAudit, Set<String> attributes);
-
+    Optional<User> findEntityById(Long id);
+    
     /**
-     * Знаходить користувача за email
+     * Save a new or update an existing user
      */
-    UserDTO findByEmail(String email, boolean includeAudit, Set<String> attributes);
-
+    UserDTO save(UserDTO userDTO);
+    
     /**
-     * Перевіряє чи існує користувач з таким ім'ям
+     * Partially update a user
      */
-    boolean existsByUsername(String username);
-
-    /**
-     * Змінює пароль користувача за токеном
-     */
-    UserDTO changePassword(PasswordChangeRequestDTO passwordChangeDto);
+    UserDTO update(Long id, UserDTO userDTO);
 }
