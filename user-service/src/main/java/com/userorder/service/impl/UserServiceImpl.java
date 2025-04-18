@@ -21,6 +21,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
@@ -228,5 +229,34 @@ public class UserServiceImpl extends AbstractBaseService<User, UserDTO, UserRepo
                 "userId", id,
                 "timestamp", System.currentTimeMillis()
         ));
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
+    public UserDTO registerUser(UserDTO userDTO) {
+        // Validate user data
+        validationService.validate(userDTO, OnCreate.class);
+
+        // Check if username exists
+        if (existsByUsername(userDTO.getUsername())) {
+            throw new IllegalArgumentException("Username already exists: " + userDTO.getUsername());
+        }
+
+        // Create user
+        UserDTO savedUser = save(userDTO);
+
+        // Create default preferences
+        userPreferenceService.createDefaultPreferences(savedUser.getId());
+
+        // Create verification token
+        verificationTokenService.createToken(savedUser.getId(), VerificationToken.TokenType.EMAIL_VERIFICATION, 1440);
+
+        // Publish event
+        kafkaTemplate.send("user-registered", Map.of(
+                "userId", savedUser.getId(),
+                "username", savedUser.getUsername(),
+                "timestamp", System.currentTimeMillis()
+        ));
+
+        return savedUser;
     }
 }
