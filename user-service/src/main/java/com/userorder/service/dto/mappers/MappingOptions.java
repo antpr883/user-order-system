@@ -16,10 +16,16 @@ public class MappingOptions {
     private boolean includeAudit = false;
 
     /**
-     * Check if a specific attribute should be included
+     * Стратегія обробки пов'язаних колекцій
+     */
+    @Builder.Default
+    private CollectionHandlingStrategy collectionStrategy = CollectionHandlingStrategy.MERGE;
+
+    /**
+     * Перевірка, чи слід включати певний атрибут
      *
-     * @param attribute The attribute name to check
-     * @return true if the attribute should be included
+     * @param attribute Назва атрибуту для перевірки
+     * @return true, якщо атрибут має бути включений
      */
     public boolean includes(String attribute) {
         if (attribute == null) {
@@ -27,16 +33,16 @@ public class MappingOptions {
         }
 
         if (attributes == null || attributes.isEmpty()) {
-            return !attribute.contains("."); // Basic fields only when no attributes specified
+            return !attribute.contains("."); // Тільки прості поля, якщо атрибути не вказані
         }
         return attributes.contains(attribute);
     }
 
     /**
-     * Check if a path or any sub-path should be included
+     * Перевірка, чи слід включити шлях або будь-який підшлях
      *
-     * @param path The path to check
-     * @return true if the path or any sub-path should be included
+     * @param path Шлях для перевірки
+     * @return true, якщо шлях або будь-який підшлях має бути включений
      */
     public boolean includesPath(String path) {
         if (path == null) {
@@ -47,12 +53,12 @@ public class MappingOptions {
             return false;
         }
 
-        // Direct match
+        // Пряме співпадіння
         if (attributes.contains(path)) {
             return true;
         }
 
-        // Check for nested paths
+        // Перевірка вкладених шляхів
         for (String attr : attributes) {
             if (attr.startsWith(path + ".")) {
                 return true;
@@ -60,5 +66,25 @@ public class MappingOptions {
         }
 
         return false;
+    }
+
+    /**
+     * Стратегія обробки пов'язаних колекцій
+     */
+    public enum CollectionHandlingStrategy {
+        /**
+         * Зберегти існуючі елементи і додати або оновити елементи з DTO
+         */
+        MERGE,
+
+        /**
+         * Замінити всі існуючі елементи елементами з DTO
+         */
+        REPLACE,
+
+        /**
+         * Не змінювати пов'язані колекції
+         */
+        IGNORE
     }
 }
